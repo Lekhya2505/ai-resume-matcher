@@ -2,9 +2,7 @@ streamlit
 python-docx
 PyPDF2
 pdfminer.six
-sklearn
+scikit-learn
+pandas
 matplotlib
 seaborn
-openai
-pandas
-spacy
