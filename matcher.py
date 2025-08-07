@@ -1,20 +1,42 @@
 import spacy
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from collections import Counter
+import re
 
 nlp = spacy.load("en_core_web_sm")
 
-def clean_text(text):
-    return ' '.join([token.lemma_ for token in nlp(text.lower()) if not token.is_stop and not token.is_punct])
+def preprocess_text(text):
+    text = re.sub(r'\s+', ' ', text.lower())
+    return text
 
-def get_cosine_similarity(resume_text, jd_text):
-    tfidf = TfidfVectorizer()
-    tfidf_matrix = tfidf.fit_transform([resume_text, jd_text])
-    return cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+def extract_keywords(text):
+    doc = nlp(text)
+    return [token.lemma_ for token in doc if token.pos_ in ['NOUN', 'VERB', 'ADJ']]
 
-def section_wise_match(resume_sections, jd_text):
-    section_scores = {}
-    for section, text in resume_sections.items():
-        score = get_cosine_similarity(text, jd_text)
-        section_scores[section] = round(score * 100, 2)
-    return section_scores
+def match_resume_to_job(resume, jd):
+    resume_clean = preprocess_text(resume)
+    jd_clean = preprocess_text(jd)
+
+    resume_keywords = extract_keywords(resume_clean)
+    jd_keywords = extract_keywords(jd_clean)
+
+    # Match Score Calculation
+    match_keywords = set(resume_keywords) & set(jd_keywords)
+    score = int(len(match_keywords) / len(set(jd_keywords)) * 100)
+
+    # Section-wise match (placeholder logic)
+    section_scores = {
+        "Skills": score + 5,
+        "Experience": score,
+        "Education": score - 5
+    }
+
+    keyword_density = Counter(jd_keywords)
+
+    suggestions = "Add more keywords related to: " + ", ".join(set(jd_keywords) - set(resume_keywords))
+
+    return {
+        "score": score,
+        "section_scores": section_scores,
+        "keyword_density": dict(keyword_density),
+        "suggestions": suggestions
+    }
