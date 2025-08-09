@@ -1,42 +1,27 @@
 import spacy
-from collections import Counter
-import re
 
+# Load spaCy model (make sure you have run: python -m spacy download en_core_web_sm)
 nlp = spacy.load("en_core_web_sm")
 
-def preprocess_text(text):
-    text = re.sub(r'\s+', ' ', text.lower())
-    return text
+def match_resume_to_jd(resume_text, jd_text):
+    """
+    Compare resume and job description to get a match percentage and keyword matches.
+    """
+    # Clean & process text
+    resume_doc = nlp(resume_text.lower())
+    jd_doc = nlp(jd_text.lower())
 
-def extract_keywords(text):
-    doc = nlp(text)
-    return [token.lemma_ for token in doc if token.pos_ in ['NOUN', 'VERB', 'ADJ']]
+    # Extract keywords (nouns + proper nouns)
+    resume_keywords = {token.text for token in resume_doc if token.is_alpha and not token.is_stop}
+    jd_keywords = {token.text for token in jd_doc if token.is_alpha and not token.is_stop}
 
-def match_resume_to_job(resume, jd):
-    resume_clean = preprocess_text(resume)
-    jd_clean = preprocess_text(jd)
-
-    resume_keywords = extract_keywords(resume_clean)
-    jd_keywords = extract_keywords(jd_clean)
-
-    # Match Score Calculation
-    match_keywords = set(resume_keywords) & set(jd_keywords)
-    score = int(len(match_keywords) / len(set(jd_keywords)) * 100)
-
-    # Section-wise match (placeholder logic)
-    section_scores = {
-        "Skills": score + 5,
-        "Experience": score,
-        "Education": score - 5
-    }
-
-    keyword_density = Counter(jd_keywords)
-
-    suggestions = "Add more keywords related to: " + ", ".join(set(jd_keywords) - set(resume_keywords))
+    # Find matches
+    common_keywords = resume_keywords.intersection(jd_keywords)
+    match_percent = round(len(common_keywords) / len(jd_keywords) * 100, 2) if jd_keywords else 0
 
     return {
-        "score": score,
-        "section_scores": section_scores,
-        "keyword_density": dict(keyword_density),
-        "suggestions": suggestions
+        "match_percent": match_percent,
+        "common_keywords": list(common_keywords),
+        "jd_keywords": list(jd_keywords),
+        "resume_keywords": list(resume_keywords)
     }
